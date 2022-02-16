@@ -1,0 +1,27 @@
+BasedOnStyle: Google
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+# If false, a function call’s arguments will either be all on the same line or will have one line each.
+BinPackArguments: false
+# If false, a function declaration’s or function definition’s parameters will either all be on the same line or will have one line each.
+BinPackParameters: false
+# If true, clang-format detetects whether function call defintions are formatted with one parameter per line.
+ExperimentalAutoDetectBinPacking: false
+# Allow putting all parameters of a function declaration onto the next line even if BinPackParameters is false.
+AllowAllParametersOfDeclarationOnNextLine: true
+AlignOperands: true
+# If true, spaces will be inserted after ( and before ).
+SpacesInParentheses: false
+# If true, spaces will be inserted after < and before > in template argument lists.
+SpacesInAngles: false
+# The number of spaces before trailing line comments (// - comments).
+# This does not affect trailing block comments (/* - comments)
+# as those commonly have different usage patterns and a number of special cases.
+SpacesBeforeTrailingComments: 2
+AlignAfterOpenBracket: Align # BlockIndent
+# SeparateDefinitionBlocks: Always
+# IndentPragmas: ?
+NamespaceIndentation: All
+# https://github.com/Reewr/master/blob/master/.clang-format
