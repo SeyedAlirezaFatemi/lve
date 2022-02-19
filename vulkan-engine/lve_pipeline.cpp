@@ -6,7 +6,6 @@
 #include <stdexcept>
 
 namespace lve {
-
     LVEPipeline::LVEPipeline(LVEDevice& device,
                              const std::string& vertFilepath,
                              const std::string& fragFilepath,
@@ -83,21 +82,13 @@ namespace lve {
         vertexInputInfo.pVertexAttributeDescriptions = nullptr;
         vertexInputInfo.pVertexBindingDescriptions = nullptr;
 
-        // Combine viewport and scissor into a single VIEWPORT_STATE_CREATE_INFO
-        VkPipelineViewportStateCreateInfo viewportInfo{};
-        viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportInfo.viewportCount = 1;
-        viewportInfo.pViewports = &configInfo.viewport;
-        viewportInfo.scissorCount = 1;
-        viewportInfo.pScissors = &configInfo.scissor;
-
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         // The numver of programmable stages our pipeline will use
         pipelineInfo.stageCount = 2;
         pipelineInfo.pStages = shaderStages;
         pipelineInfo.pVertexInputState = &vertexInputInfo;
-        pipelineInfo.pViewportState = &viewportInfo;
+        pipelineInfo.pViewportState = &configInfo.viewportInfo;
         pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
         pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
         pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
@@ -134,8 +125,9 @@ namespace lve {
         }
     }
 
-    PipelineConfigInfo LVEPipeline::defaultPipelineConfigInfo(uint32_t width, uint32_t height) {
-        PipelineConfigInfo configInfo{};
+    void LVEPipeline::defaultPipelineConfigInfo(PipelineConfigInfo& configInfo,
+                                                uint32_t width,
+                                                uint32_t height) {
         // sType is the member that defines the struct type.
 
         // First stage of pipeline: Input Assembler
@@ -194,6 +186,14 @@ namespace lve {
         // cut.
         configInfo.scissor.offset = {0, 0};
         configInfo.scissor.extent = {width, height};
+
+        // Combine viewport and scissor into a single VIEWPORT_STATE_CREATE_INFO
+        VkPipelineViewportStateCreateInfo viewportInfo{};
+        configInfo.viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        configInfo.viewportInfo.viewportCount = 1;
+        configInfo.viewportInfo.pViewports = &configInfo.viewport;
+        configInfo.viewportInfo.scissorCount = 1;
+        configInfo.viewportInfo.pScissors = &configInfo.scissor;
 
         // Rasterization: This stage breaks up our geomerty into fragments for each pixel our
         // triangle overlaps.
@@ -266,8 +266,6 @@ namespace lve {
         configInfo.depthStencilInfo.back = {};   // Optional
 
         // No default for pipelineLayout, renderPass, and subpass.
-
-        return configInfo;
     }
 
 }  // namespace lve
