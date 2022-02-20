@@ -20,6 +20,11 @@ namespace lve {
         vkDestroyPipeline(lveDevice.device(), graphicsPipeline, nullptr);
     }
 
+    void LVEPipeline::bind(VkCommandBuffer commandBuffer) {
+        // VK_PIPELINE_BIND_POINT_GRAPHICS signals that this is a graphics pipeline.
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+    }
+
     std::vector<char> LVEPipeline::readFile(const std::string& filepath) {
         // std::ios::ate => Immediately seek the end of file.
         std::ifstream file{filepath, std::ios::ate | std::ios::binary};
