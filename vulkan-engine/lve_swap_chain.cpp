@@ -53,6 +53,10 @@ namespace lve {
     }
 
     VkResult LVESwapChain::acquireNextImage(uint32_t *imageIndex) {
+        // This returns the index of the frame we should render to next. It also handles the CPU and
+        // GPU synchronization surrounding double or triple buffering.
+        // After two command buffers have been submitted, the CPU will block on the next call to
+        // acquireNextImage.
         vkWaitForFences(device.device(),
                         1,
                         &inFlightFences[currentFrame],
@@ -72,6 +76,10 @@ namespace lve {
 
     VkResult LVESwapChain::submitCommandBuffers(const VkCommandBuffer *buffers,
                                                 uint32_t *imageIndex) {
+        // Submit the command buffer to the device's graphics queue while handling CPU and GPU
+        // synchronization. The command buffer will then be executed and then the swap chain will
+        // present the associated color attachment image to the display at the appropriate time
+        // based on the present mode selected.
         if (imagesInFlight[*imageIndex] != VK_NULL_HANDLE) {
             vkWaitForFences(device.device(), 1, &imagesInFlight[*imageIndex], VK_TRUE, UINT64_MAX);
         }
