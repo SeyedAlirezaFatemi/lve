@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "lve_device.hpp"
+#include "lve_model.hpp"
 #include "lve_pipeline.hpp"
 #include "lve_swap_chain.hpp"
 #include "lve_window.hpp"
@@ -18,13 +19,14 @@ namespace lve {
         ~FirstApp();
 
         // Delete the copy constructor and operator.
-        // That's because we are managing pipelineLayout and commandBuffers.
+        // That's because this class manages the pipelineLayout and commandBuffers.
         FirstApp(const FirstApp &) = delete;
         FirstApp &operator=(const FirstApp &) = delete;
 
         void run();
 
        private:
+        void loadModels();
         void createPipelineLayout();
         void createPipeline();
         void createCommandBuffers();
@@ -36,5 +38,6 @@ namespace lve {
         std::unique_ptr<LVEPipeline> lvePipeline;
         VkPipelineLayout pipelineLayout;
         std::vector<VkCommandBuffer> commandBuffers;
+        std::unique_ptr<LVEModel> lveModel;
     };
 }  // namespace lve

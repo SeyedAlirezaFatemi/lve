@@ -5,6 +5,7 @@
 
 namespace lve {
     FirstApp::FirstApp() {
+        loadModels();
         createPipelineLayout();
         createPipeline();
         createCommandBuffers();
@@ -18,6 +19,11 @@ namespace lve {
         }
         // CPU will block until all GPU operations have completed
         vkDeviceWaitIdle(lveDevice.device());
+    }
+
+    void FirstApp::loadModels() {
+        std::vector<LVEModel::Vertex> vertices{{{0.0f, -0.5f}}, {{0.5f, -0.5f}}, {{-0.5f, 0.5f}}};
+        lveModel = std::make_unique<LVEModel>(lveDevice, vertices);
     }
 
     void FirstApp::createPipelineLayout() {
@@ -105,10 +111,8 @@ namespace lve {
             // be used.
             vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
             lvePipeline->bind(commandBuffers[i]);
-            // Draw 3 vertices and only one instance.
-            // Instances can be used when you want to draw multiple copies of the same vertex data.
-            // Can be used in rendering particle systems.
-            vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+            lveModel->bind(commandBuffers[i]);
+            lveModel->draw(commandBuffers[i]);
 
             vkCmdEndRenderPass(commandBuffers[i]);
 
