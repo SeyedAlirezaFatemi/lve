@@ -406,6 +406,10 @@ namespace lve {
                                  VkMemoryPropertyFlags properties,
                                  VkBuffer &buffer,
                                  VkDeviceMemory &bufferMemory) {
+        /**
+         * @brief Initialize buffer and buffer memory references based on size, usage, and
+         * properties.
+         */
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = size;
