@@ -58,17 +58,24 @@ namespace lve {
         // This is for our single vertex buffer.
         std::vector<VkVertexInputBindingDescription> bindingDescriptions(1);
         bindingDescriptions[0].binding = 0;
+        // We use sizeof(Vertex), so we don't have to change this if we change the Vertex struct.
         bindingDescriptions[0].stride = sizeof(Vertex);
         bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         return bindingDescriptions;
     }
 
     std::vector<VkVertexInputAttributeDescription> LVEModel::Vertex::getAttributeDescriptions() {
-        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(1);
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(2);
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
         attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[0].offset = 0;
+        attributeDescriptions[0].offset = offsetof(Vertex, position);
+        // Binding is still 0 because we are interleaving position and color together in the one
+        // binding.
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, color);
         return attributeDescriptions;
     }
 
