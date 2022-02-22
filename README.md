@@ -2,7 +2,10 @@
 
 🚧Work in progress🚧
 
-Tutorials on how to install and use vcpkg with vulkan:
+The tutorial that this repo is based on: [Link](https://www.youtube.com/playlist?list=PL8327DO66nu9qYVKLDmdLW_84-yE4auCR)
+
+
+Tutorials on how to install and use vcpkg with Vulkan:
 - https://www.youtube.com/watch?v=xYN3J13rjhM
 - https://www.youtube.com/watch?v=pSirBt4OgXQ
 
@@ -19,6 +22,12 @@ Install the following:
 Run this to integrate with Visual Studio:
 ```bash
 .\vcpkg\vcpkg integrate install
+```
+
+Compile the shaders in the vulkan-engine directory:
+```bash
+cd vulkan-engine
+compile.bat
 ```
 
 Run cmake command with this flag or add the address as the CMake toolchain file in Visual Studio:
