@@ -104,8 +104,7 @@ namespace lve {
         pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
         pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
         pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
-        // Optional: Will use this later.
-        pipelineInfo.pDynamicState = nullptr;
+        pipelineInfo.pDynamicState = &configInfo.dynamicStateInfo;
 
         pipelineInfo.layout = configInfo.pipelineLayout;
         pipelineInfo.renderPass = configInfo.renderPass;
@@ -135,9 +134,7 @@ namespace lve {
         }
     }
 
-    void LVEPipeline::defaultPipelineConfigInfo(PipelineConfigInfo& configInfo,
-                                                uint32_t width,
-                                                uint32_t height) {
+    void LVEPipeline::defaultPipelineConfigInfo(PipelineConfigInfo& configInfo) {
         // sType is the member that defines the struct type.
 
         // First stage of pipeline: Input Assembler
@@ -156,54 +153,13 @@ namespace lve {
         configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
-        // Viewport: Describes the transformation between the pipeline's output and the target
-        // image.
-        /* Viewport Transformation
-                          x                                            x
-             ---------------------------->                ---------------------------->
-         (-1,-1)                        (1,-1)         (0,0)
-            +-----------------------------+              +-----------------------------+
-          | |                             |            | |                             |
-          | |                             |            | |                             |
-          | |                             |            | |                             |
-          | |                             |            | |                             |
-          | |                             |            | |                             |
-          | |                             |            | |                             |
-        y | |                             |  ------> y | |                             |
-          | |                             |            | |                             |
-          | |                             |            | |                             |
-          | |                             |            | |                             |
-          | |                             |            | |                             |
-          | |                             |            | |                             |
-          | |                             |            | |                             |
-          v |                             |            v |                             |
-            +-----------------------------+              +-----------------------------+
-         (-1,1)                         (1,1)                                    (width,height)
-         */
-        configInfo.viewport.x = 0.0f;
-        configInfo.viewport.y = 0.0f;
-        configInfo.viewport.width = static_cast<float>(width);
-        // For example, if we set the height to height*0.5f, the image would squashed into the top
-        // half.
-        configInfo.viewport.height = static_cast<float>(height);
-        // Depth range for the viewport
-        configInfo.viewport.minDepth = 0.0f;
-        configInfo.viewport.maxDepth = 1.0f;
-
-        // Scissor
-        // Like viewport, but instead of squashing the triangle, it cuts it.
-        // For example, if we set the height to height*0.5f, the bottom half of the image would be
-        // cut.
-        configInfo.scissor.offset = {0, 0};
-        configInfo.scissor.extent = {width, height};
-
         // Combine viewport and scissor into a single VIEWPORT_STATE_CREATE_INFO
         VkPipelineViewportStateCreateInfo viewportInfo{};
         configInfo.viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         configInfo.viewportInfo.viewportCount = 1;
-        configInfo.viewportInfo.pViewports = &configInfo.viewport;
+        configInfo.viewportInfo.pViewports = nullptr;
         configInfo.viewportInfo.scissorCount = 1;
-        configInfo.viewportInfo.pScissors = &configInfo.scissor;
+        configInfo.viewportInfo.pScissors = nullptr;
 
         // Rasterization: This stage breaks up our geomerty into fragments for each pixel our
         // triangle overlaps.
@@ -274,6 +230,15 @@ namespace lve {
         configInfo.depthStencilInfo.stencilTestEnable = VK_FALSE;
         configInfo.depthStencilInfo.front = {};  // Optional
         configInfo.depthStencilInfo.back = {};   // Optional
+
+        // Configure the pipeline to expect a dynamic viewport and dynamic scissor to be provided
+        // later.
+        configInfo.dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+        configInfo.dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        configInfo.dynamicStateInfo.pDynamicStates = configInfo.dynamicStateEnables.data();
+        configInfo.dynamicStateInfo.dynamicStateCount =
+            static_cast<uint32_t>(configInfo.dynamicStateEnables.size());
+        configInfo.dynamicStateInfo.flags = 0;
 
         // No default for pipelineLayout, renderPass, and subpass.
     }

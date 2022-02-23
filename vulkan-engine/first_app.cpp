@@ -47,8 +47,7 @@ namespace lve {
 
     void FirstApp::createPipeline() {
         PipelineConfigInfo pipelineConfig{};
-        LVEPipeline::defaultPipelineConfigInfo(
-            pipelineConfig, lveSwapChain->width(), lveSwapChain->height());
+        LVEPipeline::defaultPipelineConfigInfo(pipelineConfig);
         // A render pass describes the structure and format of frame buffer objects and their
         // attachments.
         pipelineConfig.renderPass = lveSwapChain->getRenderPass();
@@ -73,6 +72,8 @@ namespace lve {
         // chain.
         vkDeviceWaitIdle(lveDevice.device());
         lveSwapChain = std::make_unique<LVESwapChain>(lveDevice, extent);
+        // Pipeline depends on the swap chain's render pass.
+        // Possible optimization: Do no recreate the pipeline if render pass is compatible.
         createPipeline();
     }
 
@@ -130,6 +131,50 @@ namespace lve {
         // be used.
         vkCmdBeginRenderPass(
             commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        // Configure the dynamic viewport and scissor.
+        // Viewport: Describes the transformation between the pipeline's output and the target
+        // image.
+        /* Viewport Transformation
+                          x                                            x
+             ---------------------------->                ---------------------------->
+         (-1,-1)                        (1,-1)         (0,0)
+            +-----------------------------+              +-----------------------------+
+          | |                             |            | |                             |
+          | |                             |            | |                             |
+          | |                             |            | |                             |
+          | |                             |            | |                             |
+          | |                             |            | |                             |
+          | |                             |            | |                             |
+        y | |                             |  ------> y | |                             |
+          | |                             |            | |                             |
+          | |                             |            | |                             |
+          | |                             |            | |                             |
+          | |                             |            | |                             |
+          | |                             |            | |                             |
+          | |                             |            | |                             |
+          v |                             |            v |                             |
+            +-----------------------------+              +-----------------------------+
+         (-1,1)                         (1,1)                                    (width,height)
+         */
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(lveSwapChain->getSwapChainExtent().width);
+        // For example, if we set the height to height*0.5f, the image would squashed into the top
+        // half.
+        viewport.height = static_cast<float>(lveSwapChain->getSwapChainExtent().height);
+        // Depth range for the viewport
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        // Scissor
+        // Like viewport, but instead of squashing the triangle, it cuts it.
+        // For example, if we set the height to height*0.5f, the bottom half of the image would be
+        // cut.
+        VkRect2D scissor{{0, 0}, lveSwapChain->getSwapChainExtent()};
+        vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
+        vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
+
         lvePipeline->bind(commandBuffers[imageIndex]);
         lveModel->bind(commandBuffers[imageIndex]);
         lveModel->draw(commandBuffers[imageIndex]);
