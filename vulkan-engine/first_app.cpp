@@ -1,6 +1,7 @@
 #include "first_app.hpp"
 
 #include <array>
+#include <cassert>
 #include <stdexcept>
 
 namespace lve {
@@ -45,20 +46,6 @@ namespace lve {
         }
     }
 
-    void FirstApp::createPipeline() {
-        PipelineConfigInfo pipelineConfig{};
-        LVEPipeline::defaultPipelineConfigInfo(pipelineConfig);
-        // A render pass describes the structure and format of frame buffer objects and their
-        // attachments.
-        pipelineConfig.renderPass = lveSwapChain->getRenderPass();
-        pipelineConfig.pipelineLayout = pipelineLayout;
-        lvePipeline = std::make_unique<LVEPipeline>(
-            lveDevice,
-            "..\\..\\..\\..\\vulkan-engine\\shaders\\simple_shader.vert.spv",
-            "..\\..\\..\\..\\vulkan-engine\\shaders\\simple_shader.frag.spv",
-            pipelineConfig);
-    }
-
     void FirstApp::recreateSwapChain() {
         auto extent = lveWindow.getExtent();
         // While the window has at least one sizeless dimension, the program will pause and wait.
@@ -71,10 +58,38 @@ namespace lve {
         // Wait until the current swap chain is no longer being used before we create the new swap
         // chain.
         vkDeviceWaitIdle(lveDevice.device());
-        lveSwapChain = std::make_unique<LVESwapChain>(lveDevice, extent);
+
+        if (lveSwapChain == nullptr) {
+            lveSwapChain = std::make_unique<LVESwapChain>(lveDevice, extent);
+        } else {
+            lveSwapChain =
+                std::make_unique<LVESwapChain>(lveDevice, extent, std::move(lveSwapChain));
+            if (lveSwapChain->imageCount() != commandBuffers.size()) {
+                freeCommandBuffers();
+                createCommandBuffers();
+            }
+        }
+
         // Pipeline depends on the swap chain's render pass.
         // Possible optimization: Do no recreate the pipeline if render pass is compatible.
         createPipeline();
+    }
+
+    void FirstApp::createPipeline() {
+        assert(lveSwapChain != nullptr && "Cannot create pipeline before swap chain");
+        assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
+
+        PipelineConfigInfo pipelineConfig{};
+        LVEPipeline::defaultPipelineConfigInfo(pipelineConfig);
+        // A render pass describes the structure and format of frame buffer objects and their
+        // attachments.
+        pipelineConfig.renderPass = lveSwapChain->getRenderPass();
+        pipelineConfig.pipelineLayout = pipelineLayout;
+        lvePipeline = std::make_unique<LVEPipeline>(
+            lveDevice,
+            "..\\..\\..\\..\\vulkan-engine\\shaders\\simple_shader.vert.spv",
+            "..\\..\\..\\..\\vulkan-engine\\shaders\\simple_shader.frag.spv",
+            pipelineConfig);
     }
 
     void FirstApp::createCommandBuffers() {
@@ -94,6 +109,14 @@ namespace lve {
             VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate command buffers");
         }
+    }
+
+    void FirstApp::freeCommandBuffers() {
+        vkFreeCommandBuffers(lveDevice.device(),
+                             lveDevice.getCommandPool(),
+                             static_cast<uint32_t>(commandBuffers.size()),
+                             commandBuffers.data());
+        commandBuffers.clear();
     }
 
     void FirstApp::recordCommandBuffer(int imageIndex) {

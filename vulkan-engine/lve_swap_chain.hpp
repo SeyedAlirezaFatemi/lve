@@ -1,13 +1,12 @@
 #pragma once
 
-#include "lve_device.hpp"
-
-// vulkan headers
 #include <vulkan/vulkan.h>
 
-// std lib headers
+#include <memory>
 #include <string>
 #include <vector>
+
+#include "lve_device.hpp"
 
 namespace lve {
 
@@ -19,7 +18,10 @@ namespace lve {
         // once.
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-        LVESwapChain(LVEDevice &deviceRef, VkExtent2D windowExtent);
+        LVESwapChain(LVEDevice &deviceRef, VkExtent2D extent);
+        LVESwapChain(LVEDevice &deviceRef,
+                     VkExtent2D extent,
+                     std::shared_ptr<LVESwapChain> previous);
         ~LVESwapChain();
 
         LVESwapChain(const LVESwapChain &) = delete;
@@ -44,6 +46,7 @@ namespace lve {
         VkResult submitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex);
 
        private:
+        void init();
         void createSwapChain();
         void createImageViews();
         void createDepthResources();
@@ -74,6 +77,7 @@ namespace lve {
         VkExtent2D windowExtent;
 
         VkSwapchainKHR swapChain;
+        std::shared_ptr<LVESwapChain> oldSwapChain;
 
         std::vector<VkSemaphore> imageAvailableSemaphores;
         std::vector<VkSemaphore> renderFinishedSemaphores;
