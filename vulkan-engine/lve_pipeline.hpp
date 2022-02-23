@@ -36,7 +36,7 @@ namespace lve {
         // delete copy constructor
         LVEPipeline(const LVEPipeline&) = delete;
         // delete assignment operator
-        void operator=(const LVEPipeline&) = delete;
+        LVEPipeline& operator=(const LVEPipeline&) = delete;
 
         void bind(VkCommandBuffer commandBuffer);
 
