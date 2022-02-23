@@ -7,7 +7,7 @@ namespace lve {
     FirstApp::FirstApp() {
         loadModels();
         createPipelineLayout();
-        createPipeline();
+        recreateSwapChain();
         createCommandBuffers();
     }
     FirstApp::~FirstApp() { vkDestroyPipelineLayout(lveDevice.device(), pipelineLayout, nullptr); }
@@ -48,10 +48,10 @@ namespace lve {
     void FirstApp::createPipeline() {
         PipelineConfigInfo pipelineConfig{};
         LVEPipeline::defaultPipelineConfigInfo(
-            pipelineConfig, lveSwapChain.width(), lveSwapChain.height());
+            pipelineConfig, lveSwapChain->width(), lveSwapChain->height());
         // A render pass describes the structure and format of frame buffer objects and their
         // attachments.
-        pipelineConfig.renderPass = lveSwapChain.getRenderPass();
+        pipelineConfig.renderPass = lveSwapChain->getRenderPass();
         pipelineConfig.pipelineLayout = pipelineLayout;
         lvePipeline = std::make_unique<LVEPipeline>(
             lveDevice,
@@ -60,11 +60,27 @@ namespace lve {
             pipelineConfig);
     }
 
+    void FirstApp::recreateSwapChain() {
+        auto extent = lveWindow.getExtent();
+        // While the window has at least one sizeless dimension, the program will pause and wait.
+        // E.g. during minimization.
+        while (extent.width == 0 || extent.height == 0) {
+            extent = lveWindow.getExtent();
+            glfwWaitEvents();
+        }
+
+        // Wait until the current swap chain is no longer being used before we create the new swap
+        // chain.
+        vkDeviceWaitIdle(lveDevice.device());
+        lveSwapChain = std::make_unique<LVESwapChain>(lveDevice, extent);
+        createPipeline();
+    }
+
     void FirstApp::createCommandBuffers() {
-        // lveSwapChain.imageCount() will likely be either 2 or 3 depending on if the device
+        // lveSwapChain->imageCount() will likely be either 2 or 3 depending on if the device
         // supports double or triple buffering. Each command buffer is going to draw to a different
         // frame buffer.
-        commandBuffers.resize(lveSwapChain.imageCount());
+        commandBuffers.resize(lveSwapChain->imageCount());
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -77,59 +93,77 @@ namespace lve {
             VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate command buffers");
         }
+    }
 
-        // We need to record our draw commands to each buffer
-        for (size_t i = 0; i < commandBuffers.size(); i++) {
-            VkCommandBufferBeginInfo beginInfo{};
-            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    void FirstApp::recordCommandBuffer(int imageIndex) {
+        // We need to record our draw commands to each command buffer
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-            if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to begin recording command buffer");
-            }
+        if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to begin recording command buffer");
+        }
 
-            VkRenderPassBeginInfo renderPassInfo{};
-            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = lveSwapChain.getRenderPass();
-            // Which frame buffer this render pass writes in
-            renderPassInfo.framebuffer = lveSwapChain.getFrameBuffer(i);
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = lveSwapChain->getRenderPass();
+        // Which frame buffer this render pass writes in
+        renderPassInfo.framebuffer = lveSwapChain->getFrameBuffer(imageIndex);
 
-            // Setup render area
-            // The area where the shader loads and stores will take place.
-            renderPassInfo.renderArea.offset = {0, 0};
-            renderPassInfo.renderArea.extent = lveSwapChain.getSwapChainExtent();
+        // Setup render area
+        // The area where the shader loads and stores will take place.
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = lveSwapChain->getSwapChainExtent();
 
-            // Set the clear values
-            // This corresponds to what we want the initial values of the frame buffer attachments
-            // cleared to.
-            // Index 0 is the color attachment and index 1 is the depth attachment.
-            std::array<VkClearValue, 2> clearValues{};
-            clearValues[0].color = {0.1f, 0.1f, 0.1f, 0.1f};
-            clearValues[1].depthStencil = {1.0f, 0};
-            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-            renderPassInfo.pClearValues = clearValues.data();
+        // Set the clear values
+        // This corresponds to what we want the initial values of the frame buffer attachments
+        // cleared to.
+        // Index 0 is the color attachment and index 1 is the depth attachment.
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color = {0.1f, 0.1f, 0.1f, 0.1f};
+        clearValues[1].depthStencil = {1.0f, 0};
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
 
-            // VK_SUBPASS_CONTENTS_INLINE signals that the subsequent render pass commands will be
-            // directly embedded in the primary command buffer itself and no secondary commands will
-            // be used.
-            vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-            lvePipeline->bind(commandBuffers[i]);
-            lveModel->bind(commandBuffers[i]);
-            lveModel->draw(commandBuffers[i]);
+        // VK_SUBPASS_CONTENTS_INLINE signals that the subsequent render pass commands will be
+        // directly embedded in the primary command buffer itself and no secondary commands will
+        // be used.
+        vkCmdBeginRenderPass(
+            commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        lvePipeline->bind(commandBuffers[imageIndex]);
+        lveModel->bind(commandBuffers[imageIndex]);
+        lveModel->draw(commandBuffers[imageIndex]);
 
-            vkCmdEndRenderPass(commandBuffers[i]);
+        vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
-            if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to record command buffer");
-            }
+        if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to record command buffer");
         }
     }
+
     void FirstApp::drawFrame() {
         uint32_t imageIndex;
-        auto result = lveSwapChain.acquireNextImage(&imageIndex);
+        auto result = lveSwapChain->acquireNextImage(&imageIndex);
+        // Here we can detect if the swap chain has been resized and decide whether or not it needs
+        // to be recreated.
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            recreateSwapChain();
+            return;
+        }
+
         if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("Failed to acquire swap chain image");
         }
-        result = lveSwapChain.submitCommandBuffers(&commandBuffers[imageIndex], &imageIndex);
+
+        recordCommandBuffer(imageIndex);
+        result = lveSwapChain->submitCommandBuffers(&commandBuffers[imageIndex], &imageIndex);
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
+            lveWindow.wasWindowResized()) {
+            lveWindow.resetWindowResizedFlag();
+            recreateSwapChain();
+            return;
+        }
+
         if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to present swap chain image");
         }

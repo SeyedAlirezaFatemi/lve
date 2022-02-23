@@ -53,10 +53,12 @@ namespace lve {
     }
 
     VkResult LVESwapChain::acquireNextImage(uint32_t *imageIndex) {
-        // This returns the index of the frame we should render to next. It also handles the CPU and
-        // GPU synchronization surrounding double or triple buffering.
-        // After two command buffers have been submitted, the CPU will block on the next call to
-        // acquireNextImage.
+        /**
+         * @brief Returns the index of the frame we should render to next. It also handles the CPU
+         * and GPU synchronization surrounding double or triple buffering.
+         * After two command buffers have been submitted, the CPU will block on the next call to
+         * acquireNextImage.
+         */
         vkWaitForFences(device.device(),
                         1,
                         &inFlightFences[currentFrame],
