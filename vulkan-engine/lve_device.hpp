@@ -34,7 +34,7 @@ namespace lve {
 
         // Not copyable or movable
         LVEDevice(const LVEDevice &) = delete;
-        void operator=(const LVEDevice &) = delete;
+        LVEDevice &operator=(const LVEDevice &) = delete;
         LVEDevice(LVEDevice &&) = delete;
         LVEDevice &operator=(LVEDevice &&) = delete;
 
