@@ -1,10 +1,21 @@
 #include "first_app.hpp"
 
+// Signal GLM to expect angles to be specified in radians
+#define GLM_FORCE_RADIANS
+// Signal GLM to expect the depth buffer values to range from 0 to 1. OpenGL is -1 to 1.
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <array>
 #include <cassert>
+#include <glm/glm.hpp>
 #include <stdexcept>
 
 namespace lve {
+
+    struct SimplePushConstantData {
+        glm::vec2 offset;
+        alignas(16) glm::vec3 color;  // Pay attention to alignment requirements
+    };
+
     FirstApp::FirstApp() {
         loadModels();
         createPipelineLayout();
@@ -30,16 +41,22 @@ namespace lve {
     }
 
     void FirstApp::createPipelineLayout() {
+        VkPushConstantRange pushConstantRange{};
+        // We want access to the push constant data in both the vertex and fragment shaders.
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(SimplePushConstantData);
+
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         // A pipeline set layout is used to pass data other than vertex data to the vertex and
         // fragment shaders. Like textures.
         pipelineLayoutInfo.setLayoutCount = 0;
         pipelineLayoutInfo.pSetLayouts = nullptr;
-        // Push constants are a way to efficiently send a small amound of data to the shader
+        // Push constants are a way to efficiently send a small amount of data to the shader
         // programs.
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
-        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
         if (vkCreatePipelineLayout(
                 lveDevice.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create pipeline layout");
@@ -200,7 +217,21 @@ namespace lve {
 
         lvePipeline->bind(commandBuffers[imageIndex]);
         lveModel->bind(commandBuffers[imageIndex]);
-        lveModel->draw(commandBuffers[imageIndex]);
+
+        // Draw 4 copies of the model with each copy using slightly different push data.
+        for (size_t j = 0; j < 4; j++) {
+            SimplePushConstantData push{};
+            push.offset = {0.0f, -0.4 + j * 0.25f};
+            push.color = {0.0f, 0.0f, 0.2f + j * 0.2f};
+
+            vkCmdPushConstants(commandBuffers[imageIndex],
+                               pipelineLayout,
+                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                               0,
+                               sizeof(SimplePushConstantData),
+                               &push);
+            lveModel->draw(commandBuffers[imageIndex]);
+        }
 
         vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
