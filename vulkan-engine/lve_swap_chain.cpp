@@ -81,6 +81,8 @@ namespace lve {
         VkResult result = vkAcquireNextImageKHR(
             device.device(),
             swapChain,
+            // How long this should wait for images to become available if there are none available
+            // right now
             std::numeric_limits<uint64_t>::max(),
             imageAvailableSemaphores[currentFrame],  // must be a not signaled semaphore
             VK_NULL_HANDLE,
@@ -126,6 +128,8 @@ namespace lve {
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
         presentInfo.waitSemaphoreCount = 1;
+        // The semaphore that was signaled during draw is set here to be waited on. As soon as the
+        // signal arrives, the references swap chain image is ready for being presented.
         presentInfo.pWaitSemaphores = signalSemaphores;
 
         VkSwapchainKHR swapChains[] = {swapChain};
