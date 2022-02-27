@@ -5,9 +5,7 @@
 
 #include "lve_device.hpp"
 #include "lve_game_object.hpp"
-#include "lve_model.hpp"
-#include "lve_pipeline.hpp"
-#include "lve_swap_chain.hpp"
+#include "lve_renderer.hpp"
 #include "lve_window.hpp"
 
 namespace lve {
@@ -19,8 +17,6 @@ namespace lve {
         FirstApp();
         ~FirstApp();
 
-        // Delete the copy constructor and operator.
-        // That's because this class manages the pipelineLayout and commandBuffers.
         FirstApp(const FirstApp &) = delete;
         FirstApp &operator=(const FirstApp &) = delete;
 
@@ -28,22 +24,12 @@ namespace lve {
 
        private:
         void loadGameObjects();
-        void createPipelineLayout();
-        void createPipeline();
-        void createCommandBuffers();
-        void freeCommandBuffers();
-        void drawFrame();
-        void recreateSwapChain();
-        void recordCommandBuffer(int imageIndex);
-        void renderGameObjects(VkCommandBuffer commandBuffer);
 
         // Initialized from top to bottom
-        LVEWindow lveWindow{WIDTH, HEIGHT, "Hello Vulkan!"};
+        LVEWindow lveWindow{WIDTH, HEIGHT, "Vulkan Engine"};
         LVEDevice lveDevice{lveWindow};
-        std::unique_ptr<LVESwapChain> lveSwapChain;
-        std::unique_ptr<LVEPipeline> lvePipeline;
-        VkPipelineLayout pipelineLayout;
-        std::vector<VkCommandBuffer> commandBuffers;
+        LVERenderer lveRenderer{lveWindow, lveDevice};
+
         std::vector<LVEGameObject> gameObjects;
     };
 }  // namespace lve
