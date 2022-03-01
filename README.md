@@ -37,3 +37,8 @@ Run cmake command with this flag or add the address as the CMake toolchain file 
 
 Maybe helpful:
 - https://www.40tude.fr/how-to-use-vcpkg-with-vscode-and-cmake/
+
+
+Current state:
+
+![Screenshot](ss1.png)
