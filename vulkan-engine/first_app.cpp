@@ -36,34 +36,72 @@ namespace lve {
         vkDeviceWaitIdle(lveDevice.device());
     }
 
-    void FirstApp::loadGameObjects() {
-        std::vector<LVEModel::Vertex> vertices{{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                               {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                                               {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
-        auto lveModel = std::make_shared<LVEModel>(lveDevice, vertices);
-        std::vector<glm::vec3> colors{{1.0f, 0.7f, 0.73f},
-                                      {1.0f, 0.87f, 0.73f},
-                                      {1.0f, 1.0f, 0.73f},
-                                      {0.73f, 1.0f, 0.8f},
-                                      {0.73, 0.88f, 1.0f}};
-        for (auto& color : colors) {
-            color = glm::pow(color, glm::vec3{2.2f});
-        }
-        for (int i = 0; i < 40; i++) {
-            auto triangle = LVEGameObject::createGameObject();
-            triangle.model = lveModel;
-            triangle.transform2d.scale = glm::vec2(.5f) + i * 0.025f;
-            triangle.transform2d.rotation = i * glm::pi<float>() * .025f;
-            triangle.color = colors[i % colors.size()];
-            gameObjects.push_back(std::move(triangle));
-        }
+    // temporary helper function, creates a 1x1x1 cube centered at offset
+    std::unique_ptr<LVEModel> createCubeModel(LVEDevice& device, glm::vec3 offset) {
+        std::vector<LVEModel::Vertex> vertices{
 
-        // auto triangle = LVEGameObject::createGameObject();
-        // triangle.model = lveModel;
-        // triangle.color = {0.1f, 0.8f, 0.1f};
-        // triangle.transform2d.translation.x = 0.2f;
-        // triangle.transform2d.rotation = 0.25f * glm::two_pi<float>();
-        // triangle.transform2d.scale = {2.0f, 0.5f};
-        // gameObjects.push_back(std::move(triangle));
+            // left face (white)
+            {{-.5f, -.5f, -.5f}, {.9f, .9f, .9f}},
+            {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
+            {{-.5f, -.5f, .5f}, {.9f, .9f, .9f}},
+            {{-.5f, -.5f, -.5f}, {.9f, .9f, .9f}},
+            {{-.5f, .5f, -.5f}, {.9f, .9f, .9f}},
+            {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
+
+            // right face (yellow)
+            {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
+            {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
+            {{.5f, -.5f, .5f}, {.8f, .8f, .1f}},
+            {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
+            {{.5f, .5f, -.5f}, {.8f, .8f, .1f}},
+            {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
+
+            // top face (orange, remember y axis points down)
+            {{-.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
+            {{.5f, -.5f, .5f}, {.9f, .6f, .1f}},
+            {{-.5f, -.5f, .5f}, {.9f, .6f, .1f}},
+            {{-.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
+            {{.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
+            {{.5f, -.5f, .5f}, {.9f, .6f, .1f}},
+
+            // bottom face (red)
+            {{-.5f, .5f, -.5f}, {.8f, .1f, .1f}},
+            {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
+            {{-.5f, .5f, .5f}, {.8f, .1f, .1f}},
+            {{-.5f, .5f, -.5f}, {.8f, .1f, .1f}},
+            {{.5f, .5f, -.5f}, {.8f, .1f, .1f}},
+            {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
+
+            // nose face (blue)
+            {{-.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
+            {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
+            {{-.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
+            {{-.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
+            {{.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
+            {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
+
+            // tail face (green)
+            {{-.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
+            {{.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
+            {{-.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
+            {{-.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
+            {{.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
+            {{.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
+
+        };
+        for (auto& v : vertices) {
+            v.position += offset;
+        }
+        return std::make_unique<LVEModel>(device, vertices);
+    }
+
+    void FirstApp::loadGameObjects() {
+        std::shared_ptr<LVEModel> lveModel = createCubeModel(lveDevice, {.0f, .0f, .0f});
+        auto cube = LVEGameObject::createGameObject();
+        cube.model = lveModel;
+        // x,y in [-1, 1] - z in [0, 1]
+        cube.transform.translation = {.0f, .0f, .5f};
+        cube.transform.scale = {.5f, .5f, .5f};
+        gameObjects.push_back(std::move(cube));
     }
 }  // namespace lve
