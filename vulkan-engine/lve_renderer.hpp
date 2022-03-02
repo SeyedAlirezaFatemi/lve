@@ -38,6 +38,7 @@ namespace lve {
 
         // The application needs to access the swap chain render pass to configure pipelines.
         VkRenderPass getSwapChainRenderPass() const { return lveSwapChain->getRenderPass(); }
+        float getAspectRatio() const { return lveSwapChain->extentAspectRatio(); }
 
         // The reason beginFrame and beginSwapChainRenderPass or the endFrame and
         // endSwapChainRenderPass are not combined:

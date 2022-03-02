@@ -1,5 +1,6 @@
 #include "first_app.hpp"
 
+#include "lve_camera.hpp"
 #include "simple_render_system.hpp"
 
 // Signal GLM to expect angles to be specified in radians
@@ -20,14 +21,17 @@ namespace lve {
 
     void FirstApp::run() {
         SimpleRenderSystem simpleRenderSystem{lveDevice, lveRenderer.getSwapChainRenderPass()};
+        LVECamera camera{};
 
         while (!lveWindow.shouldClose()) {
             glfwPollEvents();  // Poll window events
-
+            float aspect = lveRenderer.getAspectRatio();
+            // camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
+            camera.setPerspectiveProjection(glm::radians(50.f), aspect, 0.1f, 10.f);
             // beginFrame returns nullptr if the swap chain needs to be recreated
             if (auto commandBuffer = lveRenderer.beginFrame()) {
                 lveRenderer.beginSwapChainRenderPass(commandBuffer);
-                simpleRenderSystem.renderGameObjects(commandBuffer, gameObjects);
+                simpleRenderSystem.renderGameObjects(commandBuffer, gameObjects, camera);
                 lveRenderer.endSwapChainRenderPass(commandBuffer);
                 lveRenderer.endFrame();
             }
@@ -100,7 +104,7 @@ namespace lve {
         auto cube = LVEGameObject::createGameObject();
         cube.model = lveModel;
         // x,y in [-1, 1] - z in [0, 1]
-        cube.transform.translation = {.0f, .0f, .5f};
+        cube.transform.translation = {.0f, .0f, 2.5f};
         cube.transform.scale = {.5f, .5f, .5f};
         gameObjects.push_back(std::move(cube));
     }
