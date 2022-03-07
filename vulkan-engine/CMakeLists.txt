@@ -10,7 +10,8 @@ add_executable (vulkan-engine  "main.cpp" "first_app.cpp" "first_app.hpp"
                 "lve_model.hpp" "lve_model.cpp" "lve_game_object.hpp"
                 "lve_renderer.hpp" "lve_renderer.cpp"
                 "simple_render_system.hpp" "simple_render_system.cpp"
-                "lve_camera.hpp" "lve_camera.cpp")
+                "lve_camera.hpp" "lve_camera.cpp"
+                "keyboard_movement_controller.hpp" "keyboard_movement_controller.cpp")
 
 target_link_libraries(vulkan-engine PRIVATE glm::glm)
 target_link_libraries(vulkan-engine PRIVATE glfw)
