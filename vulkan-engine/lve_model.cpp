@@ -5,14 +5,19 @@
 
 namespace lve {
 
-    LVEModel::LVEModel(LVEDevice &lveDevice, const std::vector<Vertex> &vertices)
+    LVEModel::LVEModel(LVEDevice &lveDevice, const LVEModel::Builder &builder)
         : lveDevice(lveDevice) {
-        createVertexBuffers(vertices);
+        createVertexBuffers(builder.vertices);
+        createIndexBuffers(builder.indices);
     }
 
     LVEModel::~LVEModel() {
         vkDestroyBuffer(lveDevice.device(), vertexBuffer, nullptr);
         vkFreeMemory(lveDevice.device(), vertexBufferMemory, nullptr);
+        if (hasIndexBuffer) {
+            vkDestroyBuffer(lveDevice.device(), indexBuffer, nullptr);
+            vkFreeMemory(lveDevice.device(), indexBufferMemory, nullptr);
+        }
     }
 
     void LVEModel::createVertexBuffers(const std::vector<Vertex> &vertices) {
@@ -41,6 +46,36 @@ namespace lve {
         vkUnmapMemory(lveDevice.device(), vertexBufferMemory);
     }
 
+    void LVEModel::createIndexBuffers(const std::vector<uint32_t> &indices) {
+        indexCount = static_cast<uint32_t>(indices.size());
+        hasIndexBuffer = indexCount > 0;
+        if (!hasIndexBuffer) {
+            return;
+        }
+
+        VkDeviceSize bufferSize = sizeof(indices[0]) * indexCount;
+        // Host: CPU - Device: GPU
+        // VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT => Allocated memory accessable from host
+        // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT => Keep the host and device memory consistent with
+        // each other
+        lveDevice.createBuffer(
+            bufferSize,
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            indexBuffer,
+            indexBufferMemory);
+        void *data;
+        // Create a region of host memory mapped to device memory and sets data to the beginning of
+        // the mapped memory range.
+        vkMapMemory(lveDevice.device(), indexBufferMemory, 0, bufferSize, 0, &data);
+        // Copy data to the host mapped memory region. Because of
+        // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, the host memory will automatically be flushed to
+        // update the device memory. If this bit was absent, we had to call
+        // vkFlushMappedMemoryRanges.
+        memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
+        vkUnmapMemory(lveDevice.device(), indexBufferMemory);
+    }
+
     void LVEModel::bind(VkCommandBuffer commandBuffer) {
         // We can add multiple bindings by adding additional elements to these arrays.
         VkBuffer buffers[] = {vertexBuffer};
@@ -48,10 +83,19 @@ namespace lve {
         // Record to the command buffer to bind one vertex buffer starting at binding 0 with an
         // offset of 0.
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
+
+        if (hasIndexBuffer) {
+            // indexType should match the type of the indices vector
+            vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        }
     }
 
     void LVEModel::draw(VkCommandBuffer commandBuffer) {
-        vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
+        if (hasIndexBuffer) {
+            vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
+        } else {
+            vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
+        }
     }
 
     std::vector<VkVertexInputBindingDescription> LVEModel::Vertex::getBindingDescriptions() {
