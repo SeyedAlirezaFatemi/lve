@@ -24,26 +24,45 @@ namespace lve {
         vertexCount = static_cast<uint32_t>(vertices.size());
         assert(vertexCount >= 3 && "Vertex count must be at least 3");
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertexCount;
+
+        // First we create the staging buffer:
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
         // Host: CPU - Device: GPU
         // VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT => Allocated memory accessable from host
         // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT => Keep the host and device memory consistent with
-        // each other
+        // each other. Whenever we update memort on the host, that data is automatically flushed to
+        // the device side.
         lveDevice.createBuffer(
             bufferSize,
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,  // Buffer is used for holding vertex input data
+            // The buffer will be used as a source location for a memory transport operation.
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            vertexBuffer,
-            vertexBufferMemory);
+            stagingBuffer,
+            stagingBufferMemory);
         void *data;
         // Create a region of host memory mapped to device memory and sets data to the beginning of
         // the mapped memory range.
-        vkMapMemory(lveDevice.device(), vertexBufferMemory, 0, bufferSize, 0, &data);
+        vkMapMemory(lveDevice.device(), stagingBufferMemory, 0, bufferSize, 0, &data);
         // Copy data to the host mapped memory region. Because of
         // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, the host memory will automatically be flushed to
         // update the device memory. If this bit was absent, we had to call
         // vkFlushMappedMemoryRanges.
         memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-        vkUnmapMemory(lveDevice.device(), vertexBufferMemory);
+        vkUnmapMemory(lveDevice.device(), stagingBufferMemory);
+
+        // VK_BUFFER_USAGE_VERTEX_BUFFER_BIT => Buffer is used for holding vertex input data.
+        // VK_BUFFER_USAGE_TRANSFER_DST_BIT => Buffer is used as a transfer destination.
+        lveDevice.createBuffer(bufferSize,
+                               VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                               vertexBuffer,
+                               vertexBufferMemory);
+        // Perform a copy operation to move the contents of the staging buffer to the vertex buffer.
+        lveDevice.copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+        // Cleanup the staging buffer as it is not needed anymore.
+        vkDestroyBuffer(lveDevice.device(), stagingBuffer, nullptr);
+        vkFreeMemory(lveDevice.device(), stagingBufferMemory, nullptr);
     }
 
     void LVEModel::createIndexBuffers(const std::vector<uint32_t> &indices) {
@@ -54,26 +73,29 @@ namespace lve {
         }
 
         VkDeviceSize bufferSize = sizeof(indices[0]) * indexCount;
-        // Host: CPU - Device: GPU
-        // VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT => Allocated memory accessable from host
-        // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT => Keep the host and device memory consistent with
-        // each other
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+
         lveDevice.createBuffer(
             bufferSize,
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            indexBuffer,
-            indexBufferMemory);
+            stagingBuffer,
+            stagingBufferMemory);
         void *data;
-        // Create a region of host memory mapped to device memory and sets data to the beginning of
-        // the mapped memory range.
-        vkMapMemory(lveDevice.device(), indexBufferMemory, 0, bufferSize, 0, &data);
-        // Copy data to the host mapped memory region. Because of
-        // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, the host memory will automatically be flushed to
-        // update the device memory. If this bit was absent, we had to call
-        // vkFlushMappedMemoryRanges.
+        vkMapMemory(lveDevice.device(), stagingBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
-        vkUnmapMemory(lveDevice.device(), indexBufferMemory);
+        vkUnmapMemory(lveDevice.device(), stagingBufferMemory);
+
+        lveDevice.createBuffer(bufferSize,
+                               VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                               indexBuffer,
+                               indexBufferMemory);
+        lveDevice.copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+        vkDestroyBuffer(lveDevice.device(), stagingBuffer, nullptr);
+        vkFreeMemory(lveDevice.device(), stagingBufferMemory, nullptr);
     }
 
     void LVEModel::bind(VkCommandBuffer commandBuffer) {
