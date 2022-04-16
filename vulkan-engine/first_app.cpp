@@ -64,12 +64,12 @@ namespace lve {
 
     void FirstApp::loadGameObjects() {
         std::shared_ptr<LVEModel> lveModel =
-            LVEModel::createModelFromFile(lveDevice, "../../../../models/smooth_vase.obj");
+            LVEModel::createModelFromFile(lveDevice, "../../../../models/flat_vase.obj");
         auto gameObj = LVEGameObject::createGameObject();
         gameObj.model = lveModel;
         // x,y in [-1, 1] - z in [0, 1]
-        gameObj.transform.translation = {.0f, .0f, 2.5f};
-        gameObj.transform.scale = {.5f, .5f, .5f};
+        gameObj.transform.translation = {.0f, .5f, 2.5f};
+        gameObj.transform.scale = {3.f, 3.f, 3.f};
         gameObjects.push_back(std::move(gameObj));
     }
 }  // namespace lve

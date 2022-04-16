@@ -157,17 +157,27 @@ namespace lve {
     }
 
     std::vector<VkVertexInputAttributeDescription> LVEModel::Vertex::getAttributeDescriptions() {
-        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(2);
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, position);
-        // Binding is still 0 because we are interleaving position and color together in the one
-        // binding.
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+        // Binding is 0 for all because we are interleaving position, color, normal, uv together in
+        // one binding.
+        attributeDescriptions.push_back(
+            {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)});
+        attributeDescriptions.push_back(
+            {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)});
+        attributeDescriptions.push_back(
+            {2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)});
+        attributeDescriptions.push_back({3, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)});
+
+        // std::vector<VkVertexInputAttributeDescription> attributeDescriptions(2);
+        // attributeDescriptions[0].binding = 0;
+        // attributeDescriptions[0].location = 0;
+        // attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        // attributeDescriptions[0].offset = offsetof(Vertex, position);
+        // attributeDescriptions[1].binding = 0;
+        // attributeDescriptions[1].location = 1;
+        // attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        // attributeDescriptions[1].offset = offsetof(Vertex, color);
+
         return attributeDescriptions;
     }
 
