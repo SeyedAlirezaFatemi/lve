@@ -9,7 +9,7 @@ layout(location = 0) out vec3 fragColor;
 
 layout(push_constant) uniform Push {
     mat4 transform; // projection * view * model
-    mat4 modelMatrix; // model to world
+    mat4 normalMatrix; // normal to world
 } push;
 
 // In world space
@@ -23,10 +23,7 @@ void main() {
     // gl_VertexIndex is the index of the current vertex.
     gl_Position = push.transform * vec4(position, 1.0);
 
-    // This is incorrect. This only works if we have uniform scaling.
-    // vec3 normalWorldSpace = normalize(mat3(push.modelMatrix) * normal);
-    // Calculating the inverse in a shader is expensive and should be avoided
-    vec3 normalWorldSpace = normalize(inverse(transpose(mat3(push.modelMatrix))) * normal);
+    vec3 normalWorldSpace = normalize(mat3(push.normalMatrix) * normal);
 
     float lightIntensity = AMBIENT + max(dot(normalWorldSpace, DIRECTION_TO_LIGHT), 0);
 

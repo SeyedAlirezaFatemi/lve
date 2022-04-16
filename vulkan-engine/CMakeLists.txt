@@ -7,7 +7,7 @@ find_package(vulkan REQUIRED)
 add_executable (vulkan-engine  "main.cpp" "first_app.cpp" "first_app.hpp"
                 "lve_window.cpp" "lve_window.hpp" "lve_pipeline.hpp" "lve_pipeline.cpp"
                 "lve_device.hpp" "lve_device.cpp" "lve_swap_chain.hpp" "lve_swap_chain.cpp"
-                "lve_model.hpp" "lve_model.cpp" "lve_game_object.hpp"
+                "lve_model.hpp" "lve_model.cpp" "lve_game_object.hpp" "lve_game_object.cpp"
                 "lve_renderer.hpp" "lve_renderer.cpp"
                 "simple_render_system.hpp" "simple_render_system.cpp"
                 "lve_camera.hpp" "lve_camera.cpp"
