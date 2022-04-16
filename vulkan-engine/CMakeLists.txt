@@ -16,3 +16,5 @@ add_executable (vulkan-engine  "main.cpp" "first_app.cpp" "first_app.hpp"
 target_link_libraries(vulkan-engine PRIVATE glm::glm)
 target_link_libraries(vulkan-engine PRIVATE glfw)
 target_link_libraries(vulkan-engine PRIVATE Vulkan::Vulkan)
+
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../libs/tinyobjloader/)

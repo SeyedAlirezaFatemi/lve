@@ -5,6 +5,7 @@
 // Signal GLM to expect the depth buffer values to range from 0 to 1. OpenGL is -1 to 1.
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
+#include <memory>
 #include <vector>
 
 #include "lve_device.hpp"
@@ -17,11 +18,18 @@ namespace lve {
          */
        public:
         struct Vertex {
-            glm::vec3 position;
-            glm::vec3 color;
+            glm::vec3 position{};
+            glm::vec3 normal{};
+            glm::vec3 color{};
+            glm::vec2 uv{};
 
             static std::vector<VkVertexInputBindingDescription> getBindingDescriptions();
             static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+
+            bool operator==(const Vertex &other) const {
+                return position == other.position && normal == other.normal &&
+                       color == other.color && uv == other.uv;
+            }
         };
 
         struct Builder {
@@ -31,6 +39,8 @@ namespace lve {
              */
             std::vector<Vertex> vertices{};
             std::vector<uint32_t> indices{};
+
+            void loadModel(const std::string &filepath);
         };
 
         LVEModel(LVEDevice &lveDevice, const LVEModel::Builder &builder);
@@ -40,6 +50,9 @@ namespace lve {
         // That's because this class manages the buffer and memory objects.
         LVEModel(const LVEModel &) = delete;
         LVEModel &operator=(const LVEModel &) = delete;
+
+        static std::unique_ptr<LVEModel> createModelFromFile(LVEDevice &device,
+                                                             const std::string &filepath);
 
         void bind(VkCommandBuffer commandBuffer);
         void draw(VkCommandBuffer commandBuffer);
