@@ -195,19 +195,14 @@ namespace lve {
                         attrib.vertices[3 * index.vertex_index + 1],
                         attrib.vertices[3 * index.vertex_index + 2],
                     };
-
-                    auto colorIndex = 3 * index.vertex_index + 2;
-                    // Check if colors are provided
-                    if (colorIndex < attrib.colors.size()) {
-                        vertex.color = {
-                            attrib.colors[colorIndex - 0],
-                            attrib.colors[colorIndex - 1],
-                            attrib.colors[colorIndex - 2],
-                        };
-                    } else {
-                        // Set default color
-                        vertex.color = {1.f, 1.f, 1.f};
-                    }
+                    // The attrib.colors vector is always initialized to be the same size as the
+                    // attrib.vertices vector and filled in with 1 wherever a color is not provided
+                    // in the obj file.
+                    vertex.color = {
+                        attrib.colors[3 * index.vertex_index + 0],
+                        attrib.colors[3 * index.vertex_index + 1],
+                        attrib.colors[3 * index.vertex_index + 2],
+                    };
                 }
                 if (index.normal_index >= 0) {
                     vertex.normal = {
