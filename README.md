@@ -41,4 +41,4 @@ Maybe helpful:
 
 Current state:
 
-![Screenshot](ss1.png)
+![Screenshot](ss2.png)
